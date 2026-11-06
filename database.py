@@ -1,3 +1,4 @@
+
 """
 Database module for Zyren Personal Assistant.
 Handles SQLite storage for conversation sessions, message history,

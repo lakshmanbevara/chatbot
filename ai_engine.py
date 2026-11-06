@@ -127,7 +127,15 @@ def _stream_gemini(
                 yield chunk.text
 
     except Exception as e:
-        yield f"❌ **Google Gemini Error:** {str(e)}"
+        err_msg = str(e)
+        if "API_KEY_INVALID" in err_msg or "API key not valid" in err_msg:
+            yield "⚠️ **Authentication Error:** The Google Gemini API key appears invalid or expired. Please check your key in the sidebar under **Profile & Settings** or in your `.env` file."
+        elif "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
+            yield "⏳ **Rate Limit Reached:** Google Gemini API quota temporarily exceeded. Please wait a few moments and retry, or select another model in **Profile & Settings**."
+        elif "not found" in err_msg.lower() or "404" in err_msg:
+            yield f"⚠️ **Model Notice:** The model `{model}` is currently unavailable on this tier. Please choose `gemini-3.5-flash` or `gemini-3.5-flash-lite` in **Profile & Settings**."
+        else:
+            yield f"❌ **Zyren Engine Notice:** We encountered an issue: {err_msg}"
 
 def _stream_groq(
     messages: List[Dict[str, str]],
