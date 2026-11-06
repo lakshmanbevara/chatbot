@@ -20,3 +20,4 @@ EXPOSE 8502
 
 # Run Zyren on container launch
 CMD ["streamlit", "run", "app.py", "--server.port=8502", "--server.address=0.0.0.0", "--server.headless=true"]
+
