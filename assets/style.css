@@ -1,0 +1,395 @@
+/* ========================================================
+   ZYREN AI - Premium World-Class AI Interface Stylesheet
+   Inspired by ChatGPT, Claude, and Gemini
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* --- Root Color Variables --- */
+:root {
+    --bg-main: #0b0d12;
+    --bg-surface: #11141b;
+    --bg-surface-elevated: #171c26;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(99, 102, 241, 0.4);
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-indigo: #6366f1;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+}
+
+/* --- Base & Reset --- */
+html, body, [class*="css"], .stApp {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    background-color: var(--bg-main) !important;
+    color: var(--text-primary) !important;
+}
+
+/* --- Smooth Custom Scrollbars --- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* --- Sidebar Styling --- */
+[data-testid="stSidebar"] {
+    background-color: var(--bg-surface) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    padding-top: 1.5rem !important;
+}
+
+[data-testid="stSidebarNav"] {
+    display: none !important;
+}
+
+/* --- Brand Logo Container --- */
+.zyren-brand-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.25rem 0.5rem 0.75rem 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.zyren-logo-icon {
+    font-size: 26px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5));
+}
+
+.zyren-brand-text {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.zyren-brand-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    margin-top: -2px;
+}
+
+/* --- New Chat Button --- */
+.new-chat-btn-wrapper button {
+    background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    border-radius: var(--radius-md) !important;
+    border: none !important;
+    padding: 0.65rem 1rem !important;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3) !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.new-chat-btn-wrapper button:hover {
+    background: linear-gradient(135deg, #1d4ed8, #6d28d9) !important;
+    box-shadow: 0 6px 22px rgba(124, 58, 237, 0.45) !important;
+    transform: translateY(-1.5px) !important;
+}
+
+/* --- Search Input in Sidebar --- */
+[data-testid="stSidebar"] input[type="text"] {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-primary) !important;
+    font-size: 0.88rem !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-testid="stSidebar"] input[type="text"]:focus {
+    border-color: var(--accent-indigo) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}
+
+/* --- Chat Session Cards in Sidebar --- */
+.sidebar-chat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.25rem;
+    background: transparent;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.sidebar-chat-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-subtle);
+}
+
+.sidebar-chat-item.active {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+/* --- Top Navigation Header --- */
+.zyren-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0 1rem 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.zyren-model-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.15));
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    color: #93c5fd;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.15);
+}
+
+/* --- Welcome Hero Section --- */
+.hero-container {
+    text-align: center;
+    padding: 3.5rem 1rem 2.5rem 1rem;
+    max-width: 780px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-sparkle {
+    font-size: 40px;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.6));
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.6rem;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+/* --- Four Suggestion Cards Grid --- */
+.suggestion-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    max-width: 780px;
+    margin: 1.5rem auto 2.5rem auto;
+}
+
+@media (max-width: 640px) {
+    .suggestion-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.suggestion-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.15rem 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.suggestion-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-indigo), transparent);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.suggestion-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.suggestion-card:hover::before {
+    opacity: 1;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.4rem;
+}
+
+.card-icon {
+    font-size: 1.35rem;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+}
+
+.card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-desc {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+/* --- Chat Messages --- */
+[data-testid="stChatMessage"] {
+    border-radius: var(--radius-lg) !important;
+    padding: 1.15rem 1.4rem !important;
+    margin-bottom: 1.1rem !important;
+    animation: fadeIn 0.25s ease-out !important;
+    border: 1px solid var(--border-subtle) !important;
+}
+
+/* User Message bubble */
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(99, 102, 241, 0.08)) !important;
+    border-color: rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* AI Message bubble */
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+    border-color: var(--border-subtle) !important;
+}
+
+/* Code block enhancements */
+pre {
+    background-color: #07090d !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: var(--radius-md) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Action toolbar buttons below assistant message */
+.msg-toolbar-btn button {
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.8rem !important;
+    padding: 0.35rem 0.65rem !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-secondary) !important;
+    transition: all 0.15s ease !important;
+}
+
+.msg-toolbar-btn button:hover {
+    background: rgba(255, 255, 255, 0.09) !important;
+    color: var(--text-primary) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* --- Quick Action Pills --- */
+.quick-pill-container {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.quick-pill-container button {
+    border-radius: 9999px !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    padding: 0.4rem 0.85rem !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid var(--border-subtle) !important;
+    color: var(--text-secondary) !important;
+    white-space: nowrap !important;
+    transition: all 0.15s ease !important;
+}
+
+.quick-pill-container button:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+/* --- User Profile Bottom Bar --- */
+.user-profile-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    margin-top: 1rem;
+}
+
+.user-avatar-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+}
+
+/* --- Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4)); }
+    50% { filter: drop-shadow(0 0 24px rgba(59, 130, 246, 0.7)); }
+}

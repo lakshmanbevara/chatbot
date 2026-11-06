@@ -104,6 +104,29 @@ def delete_conversation(conv_id: str):
         cursor.execute("DELETE FROM conversations WHERE id = ?", (conv_id,))
         conn.commit()
 
+def search_conversations(query: str) -> List[Dict[str, Any]]:
+    """Search conversations by title or message content."""
+    clean_q = f"%{query.strip()}%"
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT c.id, c.title, c.created_at, c.updated_at 
+            FROM conversations c
+            LEFT JOIN messages m ON c.id = m.conversation_id
+            WHERE c.title LIKE ? OR m.content LIKE ?
+            ORDER BY c.updated_at DESC
+        """, (clean_q, clean_q))
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+
+def clear_all_conversations():
+    """Delete all conversations and their associated messages."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM messages")
+        cursor.execute("DELETE FROM conversations")
+        conn.commit()
+
 # --- Message Management ---
 
 def add_message(conv_id: str, role: str, content: str) -> str:
