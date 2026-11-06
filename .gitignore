@@ -1,0 +1,25 @@
+# Environment variables
+.env
+
+# Virtual environment
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# SQLite Database
+*.db
+*.sqlite3
+
+# Streamlit logs and cache
+.streamlit/
+
+# OS artifacts
+Thumbs.db
+.DS_Store
+
