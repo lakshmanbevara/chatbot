@@ -107,10 +107,10 @@ if st.session_state.copied_text:
 # SIDEBAR
 # ==============================================================================
 with st.sidebar:
-    # 1. Branding
+    # 1. Subtle Animated Zyren Branding
     st.markdown("""
     <div class="zyren-brand-container">
-        <span class="zyren-logo-icon">✨</span>
+        <div class="zyren-logo-badge">✨</div>
         <div>
             <div class="zyren-brand-text">Zyren</div>
             <div class="zyren-brand-sub">Intelligence • Reasoning • Code</div>
@@ -145,10 +145,10 @@ with st.sidebar:
     else:
         conversations = db.get_conversations()
 
-    st.markdown("<div style='margin-bottom: 0.2rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='sidebar-section-header'>💬 Recent Conversations</div>", unsafe_allow_html=True)
     
     if not conversations:
-        st.caption("No conversations found.")
+        st.caption("No conversations yet.")
     else:
         for conv in conversations:
             is_active = conv["id"] == st.session_state.current_conv_id
@@ -156,7 +156,7 @@ with st.sidebar:
             with col1:
                 item_class = "sidebar-chat-item-active" if is_active else "sidebar-chat-item"
                 st.markdown(f'<div class="{item_class}">', unsafe_allow_html=True)
-                label = f"{'● ' if is_active else ''}{conv['title']}"
+                label = f"{'● ' if is_active else '💬 '}{conv['title']}"
                 if st.button(label, key=f"conv_{conv['id']}", use_container_width=True):
                     st.session_state.current_conv_id = conv["id"]
                     st.session_state.tts_text_to_speak = None
@@ -166,7 +166,7 @@ with st.sidebar:
                 st.markdown('</div>', unsafe_allow_html=True)
             with col2:
                 st.markdown('<div class="sidebar-del-btn">', unsafe_allow_html=True)
-                if st.button("✕", key=f"del_{conv['id']}", help="Delete chat"):
+                if st.button("🗑️", key=f"del_{conv['id']}", help="Delete chat"):
                     db.delete_conversation(conv["id"])
                     if is_active:
                         remaining = db.get_conversations()
@@ -174,12 +174,13 @@ with st.sidebar:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown("<div style='margin-top: 1.1rem;'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
     # 5. Persistent Long-Term Memory (Persistent Brain)
     memories = db.get_all_memories()
     with st.expander(f"🧠 Persistent Memory ({len(memories)})", expanded=False):
-        st.caption("Facts Zyren persistently remembers across all chats:")
+        st.caption("Facts Zyren remembers across conversations:")
         if memories:
             for mem in memories:
                 m_col1, m_col2 = st.columns([5, 1])
@@ -334,7 +335,7 @@ if not messages:
     </div>
     """, unsafe_allow_html=True)
 
-    # Four Attractive Cards Grid (Section 5 Requirement)
+    # Four Attractive Cards Grid (Section 1 Requirement)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown('<div class="zyren-suggestion-card">', unsafe_allow_html=True)
@@ -349,7 +350,7 @@ if not messages:
 
         st.markdown('<div class="zyren-suggestion-card">', unsafe_allow_html=True)
         if st.button(
-            "💻 Debug code\nAnalyze and optimize a Python algorithm for speed",
+            "💻 Debug code\nAnalyze and optimize Python algorithms for performance",
             key="card_debug",
             use_container_width=True
         ):
@@ -360,7 +361,7 @@ if not messages:
     with c2:
         st.markdown('<div class="zyren-suggestion-card">', unsafe_allow_html=True)
         if st.button(
-            "✍️ Write anything\nDraft an executive summary weekly project update email",
+            "✍️ Write anything\nDraft a concise executive weekly project update",
             key="card_write",
             use_container_width=True
         ):
@@ -370,7 +371,7 @@ if not messages:
 
         st.markdown('<div class="zyren-suggestion-card">', unsafe_allow_html=True)
         if st.button(
-            "🧠 Learn something new\nHow transformer neural networks work step-by-step",
+            "🧠 Learn something new\nHow transformer models & self-attention work step-by-step",
             key="card_learn",
             use_container_width=True
         ):
@@ -384,6 +385,20 @@ for idx, msg in enumerate(messages):
     with st.chat_message(msg["role"], avatar="🧑‍💻" if is_user else "✨"):
         st.markdown(msg["content"])
         
+        # User message actions: Edit previous message
+        if is_user:
+            u1, _ = st.columns([1.2, 8.8])
+            with u1:
+                st.markdown('<div class="msg-action-btn">', unsafe_allow_html=True)
+                with st.popover("✏️ Edit", help="Edit message and regenerate from here"):
+                    edited_msg = st.text_area("Edit your message:", value=msg["content"], key=f"edit_val_{msg['id']}", height=100)
+                    if st.button("Save & Resubmit", key=f"save_edit_{msg['id']}", type="primary", use_container_width=True):
+                        if edited_msg.strip():
+                            db.delete_messages_after(st.session_state.current_conv_id, msg["created_at"])
+                            st.session_state["starter_prompt"] = edited_msg.strip()
+                            st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
         # Assistant Message Actions Toolbar (TTS, Copy, Thumbs Up/Down, Regenerate)
         if not is_user:
             t1, t2, t3, t4, t5, _ = st.columns([1, 1, 1, 1, 1.4, 6.6])
@@ -400,16 +415,18 @@ for idx, msg in enumerate(messages):
                     st.toast("Copied to clipboard! 📋")
                 st.markdown('</div>', unsafe_allow_html=True)
             with t3:
-                st.markdown('<div class="msg-action-btn">', unsafe_allow_html=True)
                 is_liked = st.session_state.feedback_state.get(msg["id"]) == "up"
+                btn_class = "msg-action-btn-active" if is_liked else "msg-action-btn"
+                st.markdown(f'<div class="{btn_class}">', unsafe_allow_html=True)
                 if st.button("👍" if not is_liked else "✅", key=f"thumbup_{msg['id']}", help="Helpful response"):
                     st.session_state.feedback_state[msg["id"]] = "up"
                     st.toast("Thank you for your feedback! 👍")
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             with t4:
-                st.markdown('<div class="msg-action-btn">', unsafe_allow_html=True)
                 is_disliked = st.session_state.feedback_state.get(msg["id"]) == "down"
+                btn_class = "msg-action-btn-active" if is_disliked else "msg-action-btn"
+                st.markdown(f'<div class="{btn_class}">', unsafe_allow_html=True)
                 if st.button("👎" if not is_disliked else "❌", key=f"thumbdown_{msg['id']}", help="Not helpful"):
                     st.session_state.feedback_state[msg["id"]] = "down"
                     st.toast("Feedback recorded. We'll improve! 👎")
@@ -446,12 +463,12 @@ if st.session_state.attached_file_content:
             st.session_state.attached_file_name = None
             st.rerun()
 
-# 5. Sleek Composer Accessory Bar (Attach File, Voice Input, Quick Actions)
+# 5. Integrated Composer Accessory Toolbar (Attach File, Voice Input, Quick Actions)
 st.markdown('<div class="composer-accessory-toolbar">', unsafe_allow_html=True)
 acc_c1, acc_c2, acc_c3 = st.columns([1.5, 1.5, 5])
 
 with acc_c1:
-    with st.popover("📎 Attach File", help="Upload code or text file"):
+    with st.popover("📎 Attach File", help="Upload code or text document"):
         st.caption("Upload code or text document:")
         uploaded_file = st.file_uploader(
             "Upload file",
@@ -487,23 +504,22 @@ with acc_c2:
                         st.error(transcription["error"])
 
 with acc_c3:
-    if messages:
-        with st.popover("⚡ Quick Actions", help="Instant prompts: Summarize, Debug, Search"):
-            q1, q2 = st.columns(2)
-            with q1:
-                if st.button("⚡ Summarize Chat", use_container_width=True):
-                    st.session_state["starter_prompt"] = "Please summarize our discussion so far into key bullet points."
-                    st.rerun()
-                if st.button("💻 Debug Code", use_container_width=True):
-                    st.session_state["starter_prompt"] = "Can you help me analyze, debug, and fix this code:"
-                    st.rerun()
-            with q2:
-                if st.button("📝 Explain Simply", use_container_width=True):
-                    st.session_state["starter_prompt"] = "Explain this concept in simple terms with a practical example:"
-                    st.rerun()
-                if st.button("🌐 Web Search", use_container_width=True):
-                    st.session_state["starter_prompt"] = "Search the web for the latest news and updates on:"
-                    st.rerun()
+    with st.popover("⚡ Quick Actions", help="Instant prompts: Summarize, Debug, Search"):
+        q1, q2 = st.columns(2)
+        with q1:
+            if st.button("⚡ Summarize Chat", use_container_width=True):
+                st.session_state["starter_prompt"] = "Please summarize our discussion so far into key bullet points."
+                st.rerun()
+            if st.button("💻 Debug Code", use_container_width=True):
+                st.session_state["starter_prompt"] = "Can you help me analyze, debug, and fix this code:"
+                st.rerun()
+        with q2:
+            if st.button("📝 Explain Simply", use_container_width=True):
+                st.session_state["starter_prompt"] = "Explain this concept in simple terms with a practical example:"
+                st.rerun()
+            if st.button("🌐 Web Search", use_container_width=True):
+                st.session_state["starter_prompt"] = "Search the web for the latest news and updates on:"
+                st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
 

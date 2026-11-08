@@ -1,4 +1,5 @@
 
+
 """
 Database module for Zyren Personal Assistant.
 Handles SQLite storage for conversation sessions, message history,
@@ -179,6 +180,23 @@ def delete_last_message(conv_id: str):
         cursor.execute(
             "DELETE FROM messages WHERE id = (SELECT id FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 1)",
             (conv_id,)
+        )
+        conn.commit()
+
+def update_message(msg_id: str, content: str):
+    """Update content of an existing message."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE messages SET content = ? WHERE id = ?", (content, msg_id))
+        conn.commit()
+
+def delete_messages_after(conv_id: str, created_at: str):
+    """Delete all messages in a conversation created at or after a specific timestamp."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM messages WHERE conversation_id = ? AND created_at >= ?",
+            (conv_id, created_at)
         )
         conn.commit()
 
