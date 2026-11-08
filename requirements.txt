@@ -7,3 +7,4 @@ SpeechRecognition>=3.10.0
 ddgs>=9.0.0
 duckduckgo-search>=8.0.0
 pydub>=0.25.1
+pypdf>=5.0.0

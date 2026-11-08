@@ -12,12 +12,15 @@ import json
 from typing import List, Dict, Any, Generator, Optional
 from dotenv import load_dotenv
 
-try:
-    from ddgs import DDGS
-except ImportError:
-    from duckduckgo_search import DDGS
-
 from config import SYSTEM_PROMPT, BASE_DIR, PROVIDERS_CONFIG
+
+# Persona Prompts (Minimal Mode Switcher)
+PERSONA_PROMPTS = {
+    "general": "",
+    "coder": "\n\n[Active Mode: Coding Specialist]\nPrioritize writing clean, robust, production-ready code with concise architectural insights and time/space complexity notes.",
+    "tutor": "\n\n[Active Mode: Study Tutor]\nAct as a patient academic tutor. Break down complex concepts using relatable everyday analogies and step-by-step guidance.",
+    "writer": "\n\n[Active Mode: Executive Writer]\nAct as an articulate executive writer. Deliver polished, compelling, high-clarity prose with professional formatting."
+}
 
 def reload_env():
     """Reload .env dynamically in case user updated keys while app is running."""
@@ -25,23 +28,28 @@ def reload_env():
 
 def perform_web_search(query: str, max_results: int = 4) -> str:
     """
-    Perform a fast real-time web search using DuckDuckGo.
-    Returns formatted markdown snippets with sources.
+    Perform a fast real-time web search using DuckDuckGo (lazily imported).
+    Returns formatted markdown citations.
     """
     try:
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
+
         results = []
         with DDGS() as ddgs:
             for r in ddgs.text(query, max_results=max_results):
-                title = r.get("title", "No Title")
+                title = r.get("title", "Source")
                 href = r.get("href", "")
                 snippet = r.get("body", "")
-                results.append(f"**[{title}]({href})**\n{snippet}")
+                results.append(f"• **[{title}]({href})** — {snippet}")
         
         if not results:
             return "No real-time search results found for this query."
-        return "\n\n---\n\n".join(results)
+        return "\n\n".join(results)
     except Exception as e:
-        return f"Web search could not retrieve results: {str(e)}"
+        return f"Web search notice: {str(e)}"
 
 def detect_memory_command(text: str) -> Optional[str]:
     """
@@ -76,9 +84,11 @@ def _stream_gemini(
     user_prompt: str,
     system_text: str,
     model: str,
-    api_key: Optional[str]
+    api_key: Optional[str],
+    image_bytes: Optional[bytes] = None,
+    image_mime: Optional[str] = None
 ) -> Generator[str, None, None]:
-    """Stream from Google Gemini API (Free Tier from Google AI Studio)."""
+    """Stream from Google Gemini API (Free Tier from Google AI Studio). Supports vision/images."""
     reload_env()
     key = (api_key or os.getenv("GEMINI_API_KEY", "")).strip()
     if not key or key == "your_gemini_api_key_here":
@@ -105,10 +115,15 @@ def _stream_gemini(
                 role=role,
                 parts=[types.Part.from_text(text=msg["content"])]
             ))
-        # Append current user prompt
+        
+        # Append current user prompt + optional image
+        user_parts = [types.Part.from_text(text=user_prompt)]
+        if image_bytes:
+            user_parts.append(types.Part.from_bytes(data=image_bytes, mime_type=image_mime or "image/jpeg"))
+
         contents.append(types.Content(
             role="user",
-            parts=[types.Part.from_text(text=user_prompt)]
+            parts=user_parts
         ))
 
         config = types.GenerateContentConfig(
@@ -293,18 +308,21 @@ def stream_chat_response(
     model: Optional[str] = None,
     enable_search: bool = False,
     memories: Optional[List[str]] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    image_bytes: Optional[bytes] = None,
+    image_mime: Optional[str] = None,
+    persona: str = "general"
 ) -> Generator[str, None, None]:
     """
     Main dispatcher for streaming responses from the chosen AI provider.
-    Injects persistent long-term memories and real-time web search.
+    Injects persistent long-term memories, active persona instructions, and real-time web search.
     """
     provider = provider.lower()
     provider_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["gemini"])
     target_model = model or provider_info["default_model"]
 
-    # Build system prompt with persistent long-term memories
-    system_text = SYSTEM_PROMPT
+    # Build system prompt with persona and persistent long-term memories
+    system_text = SYSTEM_PROMPT + PERSONA_PROMPTS.get(persona.lower(), "")
     if memories and len(memories) > 0:
         mem_bullets = "\n".join([f"- {m}" for m in memories])
         system_text += f"\n\n[Persistent Long-Term Memories about the User]:\n{mem_bullets}\nUse these memories naturally whenever relevant to personalize responses."
@@ -321,11 +339,11 @@ def stream_chat_response(
             if search_context:
                 system_text += (
                     f"\n\n[Live Web Search Results for User Prompt]:\n{search_context}\n"
-                    "Incorporate these current facts into your response. Cite references when appropriate."
+                    "Incorporate these current facts into your response. Cite references with clickable links."
                 )
 
     if provider == "gemini":
-        yield from _stream_gemini(history, user_prompt, system_text, target_model, api_key)
+        yield from _stream_gemini(history, user_prompt, system_text, target_model, api_key, image_bytes, image_mime)
     elif provider == "groq":
         yield from _stream_groq(history, user_prompt, system_text, target_model, api_key)
     elif provider == "ollama":

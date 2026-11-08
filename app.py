@@ -21,11 +21,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Load External CSS & Inject Advanced Theme ---
-css_path = BASE_DIR / "assets" / "style.css"
-if css_path.exists():
-    with open(css_path, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# --- 1. Speed & Startup Optimization: Cached CSS Loading ---
+@st.cache_data(show_spinner=False)
+def get_cached_theme_css() -> str:
+    """Caches CSS in memory to eliminate repeated disk reads on each rerun."""
+    css_file = BASE_DIR / "assets" / "style.css"
+    if css_file.exists():
+        with open(css_file, "r", encoding="utf-8") as f:
+            return f.read()
+    return ""
+
+cached_css = get_cached_theme_css()
+if cached_css:
+    st.markdown(f"<style>{cached_css}</style>", unsafe_allow_html=True)
 
 # --- Browser Clipboard & Speech Synthesis Components ---
 def copy_to_clipboard(text: str):
@@ -73,6 +81,9 @@ if "current_conv_id" not in st.session_state:
     else:
         st.session_state.current_conv_id = db.create_conversation("New Chat")
 
+if "active_persona" not in st.session_state:
+    st.session_state.active_persona = "general"
+
 if "tts_text_to_speak" not in st.session_state:
     st.session_state.tts_text_to_speak = None
 
@@ -87,6 +98,15 @@ if "attached_file_content" not in st.session_state:
 
 if "attached_file_name" not in st.session_state:
     st.session_state.attached_file_name = None
+
+if "attached_image_bytes" not in st.session_state:
+    st.session_state.attached_image_bytes = None
+
+if "attached_image_name" not in st.session_state:
+    st.session_state.attached_image_name = None
+
+if "attached_image_mime" not in st.session_state:
+    st.session_state.attached_image_mime = None
 
 # Ensure active conversation is valid
 active_conv = db.get_conversation(st.session_state.current_conv_id)
@@ -126,6 +146,9 @@ with st.sidebar:
         st.session_state.tts_text_to_speak = None
         st.session_state.attached_file_content = None
         st.session_state.attached_file_name = None
+        st.session_state.attached_image_bytes = None
+        st.session_state.attached_image_name = None
+        st.session_state.attached_image_mime = None
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -162,6 +185,9 @@ with st.sidebar:
                     st.session_state.tts_text_to_speak = None
                     st.session_state.attached_file_content = None
                     st.session_state.attached_file_name = None
+                    st.session_state.attached_image_bytes = None
+                    st.session_state.attached_image_name = None
+                    st.session_state.attached_image_mime = None
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
             with col2:
@@ -279,11 +305,19 @@ with st.sidebar:
 messages = db.get_messages(st.session_state.current_conv_id)
 current_title = active_conv["title"] if active_conv else "New Chat"
 
+# Persona dictionary for mode switching
+persona_dict = {
+    "general": ("✨ General", "Balanced everyday AI assistant"),
+    "coder": ("💻 Coder", "Expert software engineer with clean code"),
+    "tutor": ("📚 Tutor", "Socratic study mentor with step-by-step breakdowns"),
+    "writer": ("✍️ Writer", "Executive editor for clear, polished prose")
+}
+
 # 1. Top Navigation Bar (Header)
 col_nav_left, col_nav_right = st.columns([6, 4])
 
 with col_nav_left:
-    t_c1, t_c2 = st.columns([5, 1])
+    t_c1, t_c2, t_c3 = st.columns([3.8, 0.8, 2.4])
     with t_c1:
         st.markdown(f"<h3 style='margin: 0; padding-top: 0.15rem; font-weight: 700; font-size: 1.35rem; color: #f8fafc;'>{current_title}</h3>", unsafe_allow_html=True)
     with t_c2:
@@ -292,6 +326,14 @@ with col_nav_left:
             if st.button("Save", key="save_title_btn"):
                 if new_title.strip():
                     db.update_conversation_title(st.session_state.current_conv_id, new_title.strip())
+                    st.rerun()
+    with t_c3:
+        active_persona_name = persona_dict.get(st.session_state.active_persona, ("✨ General", ""))[0]
+        with st.popover(f"🎭 {active_persona_name}", help="Switch AI Persona Mode"):
+            st.caption("Select Zyren's thinking mode:")
+            for p_key, (p_name, p_desc) in persona_dict.items():
+                if st.button(f"{p_name}\n{p_desc}", key=f"persona_btn_{p_key}", use_container_width=True):
+                    st.session_state.active_persona = p_key
                     st.rerun()
 
 with col_nav_right:
@@ -390,7 +432,7 @@ for idx, msg in enumerate(messages):
             u1, _ = st.columns([1.2, 8.8])
             with u1:
                 st.markdown('<div class="msg-action-btn">', unsafe_allow_html=True)
-                with st.popover("✏️ Edit", help="Edit message and regenerate from here"):
+                with st.popover("✏️ Edit", help="Edit message and regenerate response"):
                     edited_msg = st.text_area("Edit your message:", value=msg["content"], key=f"edit_val_{msg['id']}", height=100)
                     if st.button("Save & Resubmit", key=f"save_edit_{msg['id']}", type="primary", use_container_width=True):
                         if edited_msg.strip():
@@ -446,7 +488,23 @@ for idx, msg in enumerate(messages):
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
 
-# 4. Attached File Banner (if any file staged)
+# 4. Attached File & Image Banners (if any staged)
+if st.session_state.attached_image_bytes:
+    img_col1, img_col2 = st.columns([6, 1])
+    with img_col1:
+        st.markdown(
+            f"<div class='attached-image-badge'>"
+            f"🖼️ Attached Image: <b>{st.session_state.attached_image_name}</b>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+    with img_col2:
+        if st.button("✕ Remove", key="remove_image_btn", help="Detach image"):
+            st.session_state.attached_image_bytes = None
+            st.session_state.attached_image_name = None
+            st.session_state.attached_image_mime = None
+            st.rerun()
+
 if st.session_state.attached_file_content:
     af_col1, af_col2 = st.columns([6, 1])
     with af_col1:
@@ -468,23 +526,52 @@ st.markdown('<div class="composer-accessory-toolbar">', unsafe_allow_html=True)
 acc_c1, acc_c2, acc_c3 = st.columns([1.5, 1.5, 5])
 
 with acc_c1:
-    with st.popover("📎 Attach File", help="Upload code or text document"):
-        st.caption("Upload code or text document:")
+    with st.popover("📎 Attach File", help="Upload images, PDF documents, or code"):
+        st.caption("Upload image, PDF, or text file:")
         uploaded_file = st.file_uploader(
-            "Upload file",
-            type=["py", "js", "ts", "txt", "md", "json", "csv", "html", "css", "sql", "cpp", "rs", "java"],
+            "Upload document or image",
+            type=["png", "jpg", "jpeg", "webp", "pdf", "py", "js", "ts", "txt", "md", "json", "csv", "html", "css", "sql", "cpp", "rs", "java"],
             label_visibility="collapsed",
             key="file_uploader_popover"
         )
         if uploaded_file is not None:
-            try:
-                file_text = uploaded_file.read().decode("utf-8")
-                st.session_state.attached_file_content = file_text
-                st.session_state.attached_file_name = uploaded_file.name
-                st.success(f"Attached: `{uploaded_file.name}`")
+            file_name = uploaded_file.name
+            file_ext = file_name.split(".")[-1].lower()
+            
+            # 2. Image/Vision processing
+            if file_ext in ["png", "jpg", "jpeg", "webp"]:
+                st.session_state.attached_image_bytes = uploaded_file.read()
+                st.session_state.attached_image_name = file_name
+                st.session_state.attached_image_mime = uploaded_file.type or "image/jpeg"
+                st.success(f"Attached image: `{file_name}`")
                 st.rerun()
-            except Exception as e:
-                st.error(f"Could not read file: {e}")
+            # 3. PDF document processing
+            elif file_ext == "pdf":
+                try:
+                    from pypdf import PdfReader
+                    reader = PdfReader(uploaded_file)
+                    extracted_pages = []
+                    for p_idx, page in enumerate(reader.pages[:20]):
+                        t = page.extract_text()
+                        if t:
+                            extracted_pages.append(f"--- Page {p_idx+1} ---\n{t.strip()}")
+                    file_text = "\n\n".join(extracted_pages)
+                    st.session_state.attached_file_content = file_text
+                    st.session_state.attached_file_name = file_name
+                    st.success(f"Attached PDF: `{file_name}` ({len(reader.pages)} pages)")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not read PDF: {e}")
+            # Text / code file processing
+            else:
+                try:
+                    file_text = uploaded_file.read().decode("utf-8")
+                    st.session_state.attached_file_content = file_text
+                    st.session_state.attached_file_name = file_name
+                    st.success(f"Attached: `{file_name}`")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not read file: {e}")
 
 with acc_c2:
     with st.popover("🎙️ Voice Input", help="Record audio query"):
@@ -532,7 +619,7 @@ user_prompt = starter_input or chat_input_text
 if user_prompt:
     prompt_str = user_prompt.strip()
 
-    # Prepend any attached document content
+    # Prepend any attached document or PDF content
     if st.session_state.attached_file_content:
         prompt_str = (
             f"📎 [Attached File: `{st.session_state.attached_file_name}`]\n"
@@ -541,6 +628,14 @@ if user_prompt:
         )
         st.session_state.attached_file_content = None
         st.session_state.attached_file_name = None
+
+    # Capture and reset any staged image
+    cur_img_bytes = st.session_state.attached_image_bytes
+    cur_img_mime = st.session_state.attached_image_mime
+    cur_img_name = st.session_state.attached_image_name
+    st.session_state.attached_image_bytes = None
+    st.session_state.attached_image_mime = None
+    st.session_state.attached_image_name = None
 
     # Check for memory storage command
     memory_fact = ai_engine.detect_memory_command(prompt_str)
@@ -551,7 +646,10 @@ if user_prompt:
             memory_notice = f"*(I have saved this to my persistent memory: \"{memory_fact}\")*\n\n"
 
     # Save user message to database
-    db.add_message(st.session_state.current_conv_id, "user", prompt_str)
+    db_save_text = prompt_str
+    if cur_img_name:
+        db_save_text = f"[Attached Image: {cur_img_name}]\n\n{prompt_str}"
+    db.add_message(st.session_state.current_conv_id, "user", db_save_text)
 
     # Auto-update conversation title if it's the first message
     if active_conv and (active_conv["title"] == "New Chat" or not messages):
@@ -560,6 +658,8 @@ if user_prompt:
 
     # Display user message in UI
     with st.chat_message("user", avatar="🧑‍💻"):
+        if cur_img_bytes:
+            st.image(cur_img_bytes, caption=cur_img_name, width=280)
         st.markdown(prompt_str)
 
     # Generate assistant streaming response
@@ -577,7 +677,10 @@ if user_prompt:
             model=selected_model,
             enable_search=enable_search,
             memories=all_memories,
-            api_key=custom_key
+            api_key=custom_key,
+            image_bytes=cur_img_bytes,
+            image_mime=cur_img_mime,
+            persona=st.session_state.active_persona
         )
 
         response_placeholder = st.empty()
